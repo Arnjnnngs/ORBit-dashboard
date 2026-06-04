@@ -698,9 +698,11 @@ input  { font-family: var(--mono); border: none; outline: none; background: none
 }
 @media (max-width: 700px) {
   .main { padding: 16px; }
-  .topbar { padding: 0 14px; gap: 12px; }
+  .topbar { padding: 0 12px; gap: 10px; }
   .topbar-pill, .topbar-clock, .topbar-status { display: none; }
   .topbar-logo { font-size: 1.05rem; }
+  .topbar-key span { display: none; }
+  .topbar-key { padding: 6px 8px; margin-right: 0 !important; }
   .nav { padding: 0 8px; overflow-x: auto; }
   .nav-tab { padding: 12px 14px; white-space: nowrap; }
   .chart-wrapper { height: 420px; }
@@ -728,6 +730,10 @@ input  { font-family: var(--mono); border: none; outline: none; background: none
     <span id="marketStatus">Connecting…</span>
   </div>
   <div class="topbar-clock" id="clock">--:--:-- ET</div>
+  <button class="topbar-key" onclick="showSettings()" title="Settings" style="margin-right:2px;">
+    <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.1" stroke="currentColor" stroke-width="1.1"/><path d="M7 1.3v1.5M7 11.2v1.5M1.3 7h1.5M11.2 7h1.5M3 3l1.05 1.05M9.95 9.95 11 11M11 3 9.95 4.05M4.05 9.95 3 11" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+    <span>Settings</span>
+  </button>
   <button class="topbar-key" onclick="showHelp()" title="How to use this dashboard" style="margin-right:2px;">
     <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.1"/><path d="M5.5 5.4a1.6 1.6 0 1 1 2.1 1.5c-.5.3-.6.5-.6 1v.2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" fill="none"/><circle cx="7" cy="10.2" r=".6" fill="currentColor"/></svg>
     <span>Guide</span>
@@ -957,6 +963,58 @@ input  { font-family: var(--mono); border: none; outline: none; background: none
 
 </main>
 
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box" style="width:420px;max-width:92vw;">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+      <div class="modal-title">Settings</div>
+      <button onclick="hideSettings()" aria-label="Close" title="Close" style="background:none;border:none;font-size:1.25rem;line-height:1;color:var(--text-3);cursor:pointer;padding:0 2px;">&times;</button>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">Time zone (clock &amp; chart)</div>
+      <select class="modal-input" id="setTz">
+        <option value="America/New_York">Eastern — New York</option>
+        <option value="America/Chicago">Central — Chicago</option>
+        <option value="America/Denver">Mountain — Denver</option>
+        <option value="America/Los_Angeles">Pacific — Los Angeles</option>
+        <option value="UTC">UTC</option>
+        <option value="Europe/London">London</option>
+        <option value="Europe/Paris">Central Europe — Paris</option>
+        <option value="Asia/Kolkata">India — Kolkata</option>
+        <option value="Asia/Tokyo">Tokyo</option>
+        <option value="Australia/Sydney">Sydney</option>
+      </select>
+      <div style="font-size:.7rem;color:var(--text-3);margin-top:5px;line-height:1.4;">Opening-range times always follow the US market (9:30&nbsp;AM ET) regardless of this setting.</div>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">Chart language</div>
+      <select class="modal-input" id="setLang">
+        <option value="en">English</option>
+        <option value="es">Español</option>
+        <option value="fr">Français</option>
+        <option value="de">Deutsch</option>
+        <option value="pt">Português</option>
+        <option value="it">Italiano</option>
+        <option value="ja">日本語</option>
+        <option value="zh">中文</option>
+      </select>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">Live refresh rate</div>
+      <select class="modal-input" id="setRefresh">
+        <option value="15000">Every 15 seconds</option>
+        <option value="30000">Every 30 seconds</option>
+        <option value="60000">Every 60 seconds</option>
+      </select>
+      <div style="font-size:.7rem;color:var(--text-3);margin-top:5px;line-height:1.4;">A slower refresh uses less of your free data quota.</div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="disconnectKey()" style="flex:1;">Disconnect &amp; reset</button>
+      <button class="modal-btn primary" onclick="saveSettings()" style="flex:1;">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- HELP / GUIDE MODAL -->
 <div class="modal-overlay" id="helpModal">
   <div class="modal-box help-box">
@@ -1078,15 +1136,24 @@ let rateLimited = false;
 let liveActive  = false;
 let liveTimer   = null;
 let bannerActFn = null;
-const OPEN_REFRESH_MS = 30000;    // poll cadence while market open
 const CLOSED_REFRESH_MS = 300000; // slow poll while closed (to detect reopen)
+
+// ─── USER SETTINGS (display only — ORB logic always stays in US/Eastern) ───
+let displayTz    = (function(){ try { return localStorage.getItem('orb_tz')   || 'America/New_York'; } catch(e){ return 'America/New_York'; } })();
+let chartLocale  = (function(){ try { return localStorage.getItem('orb_lang') || 'en'; } catch(e){ return 'en'; } })();
+let liveRefreshMs= (function(){ try { return +localStorage.getItem('orb_refresh') || 30000; } catch(e){ return 30000; } })();
 
 // ═══════════════════════════════════════════
 // CLOCK
 // ═══════════════════════════════════════════
 function updateClock() {
-  const et = new Date().toLocaleTimeString('en-US', { timeZone:'America/New_York', hour12:false });
-  document.getElementById('clock').textContent = et + ' ET';
+  const el = document.getElementById('clock');
+  if (!el) return;
+  try {
+    el.textContent = new Date().toLocaleTimeString('en-US', { timeZone: displayTz, hour12:false, timeZoneName:'short' });
+  } catch(e) {
+    el.textContent = new Date().toLocaleTimeString('en-US', { timeZone:'America/New_York', hour12:false }) + ' ET';
+  }
 }
 setInterval(updateClock, 1000);
 updateClock();
@@ -1115,10 +1182,10 @@ function initChart() {
     container_id: 'tv-chart-container',
     symbol: activeSymbol,
     interval: '5',
-    timezone: 'America/New_York',
+    timezone: displayTz,
     theme: 'light',
     style: '1',
-    locale: 'en',
+    locale: chartLocale,
     toolbar_bg: '#F7F8FA',
     enable_publishing: false,
     hide_top_toolbar: small,
@@ -1429,7 +1496,7 @@ function stopLive() { liveActive = false; if (liveTimer) clearTimeout(liveTimer)
 async function liveTick() {
   if (!liveActive) return;
   await refreshAll();
-  let delay = OPEN_REFRESH_MS;
+  let delay = liveRefreshMs;
   if (rateLimited) { delay = 90000; rateLimited = false; }
   else if (marketOpen === false) delay = CLOSED_REFRESH_MS;
   liveTimer = setTimeout(liveTick, delay);
@@ -1702,9 +1769,31 @@ function confirmClose() {
 document.getElementById('closeModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
 document.getElementById('setupModal').addEventListener('click', function(e) { if(e.target===this) hideKeyModal(); });
 document.getElementById('helpModal').addEventListener('click', function(e) { if(e.target===this) hideHelp(); });
+document.getElementById('settingsModal').addEventListener('click', function(e) { if(e.target===this) hideSettings(); });
 function showHelp() { document.getElementById('helpModal').classList.add('open'); }
 function hideHelp() { document.getElementById('helpModal').classList.remove('open'); }
-document.addEventListener('keydown', function(e) { if(e.key==='Escape'){ hideKeyModal(); closeModal(); hideHelp(); } });
+function showSettings() {
+  document.getElementById('setTz').value = displayTz;
+  document.getElementById('setLang').value = chartLocale;
+  document.getElementById('setRefresh').value = String(liveRefreshMs);
+  document.getElementById('settingsModal').classList.add('open');
+}
+function hideSettings() { document.getElementById('settingsModal').classList.remove('open'); }
+function saveSettings() {
+  displayTz = document.getElementById('setTz').value;
+  chartLocale = document.getElementById('setLang').value;
+  liveRefreshMs = +document.getElementById('setRefresh').value || 30000;
+  try { localStorage.setItem('orb_tz', displayTz); localStorage.setItem('orb_lang', chartLocale); localStorage.setItem('orb_refresh', liveRefreshMs); } catch(e){}
+  updateClock();
+  if (tvWidget) initChart();
+  if (liveActive) { if (liveTimer) clearTimeout(liveTimer); liveTick(); }
+  hideSettings();
+}
+function disconnectKey() {
+  try { ['orb_td_key','orb_tz','orb_lang','orb_refresh','orb_or_len'].forEach(k => localStorage.removeItem(k)); } catch(e){}
+  location.reload();
+}
+document.addEventListener('keydown', function(e) { if(e.key==='Escape'){ hideKeyModal(); closeModal(); hideHelp(); hideSettings(); } });
 
 // ─── ENTER KEY SUPPORT ───
 document.getElementById('chartTickerInput').addEventListener('keydown', e => { if(e.key==='Enter') addTicker(); });
