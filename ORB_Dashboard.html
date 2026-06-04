@@ -1,0 +1,1731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ORBit Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+/* ─── TOKENS ─── */
+:root {
+  --navy:       #0A1628;
+  --navy-mid:   #132040;
+  --cyan:       #00B4D8;
+  --cyan-light: #E0F7FC;
+  --green:      #1B8A5A;
+  --green-bg:   #EBF7F2;
+  --red:        #C0392B;
+  --red-bg:     #FDF0EE;
+  --yellow:     #D4820A;
+  --yellow-bg:  #FEF6E6;
+  --white:      #FFFFFF;
+  --off:        #F7F8FA;
+  --border:     #E2E6ED;
+  --border-strong: #C8CDD8;
+  --text-1:     #0A1628;
+  --text-2:     #3A4356;
+  --text-3:     #7A8299;
+  --text-4:     #B0B8C9;
+  --shadow-sm:  0 1px 3px rgba(10,22,40,.06), 0 1px 2px rgba(10,22,40,.04);
+  --shadow-md:  0 4px 16px rgba(10,22,40,.08), 0 2px 6px rgba(10,22,40,.05);
+  --shadow-lg:  0 12px 40px rgba(10,22,40,.10), 0 4px 12px rgba(10,22,40,.06);
+  --radius:     10px;
+  --radius-sm:  6px;
+  --mono:       'IBM Plex Mono', monospace;
+  --sans:       'DM Sans', sans-serif;
+  --serif:      'DM Serif Display', serif;
+}
+
+/* ─── RESET ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: var(--sans);
+  background: var(--off);
+  color: var(--text-1);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+button { cursor: pointer; font-family: var(--sans); border: none; background: none; }
+input  { font-family: var(--mono); border: none; outline: none; background: none; }
+
+/* ─── TOPBAR ─── */
+.topbar {
+  background: var(--navy);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 32px;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  box-shadow: 0 2px 12px rgba(0,0,0,.18);
+}
+.topbar-logo {
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  color: var(--white);
+  letter-spacing: .01em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+.topbar-logo span {
+  color: var(--cyan);
+}
+.topbar-pill {
+  background: rgba(0,180,216,.15);
+  border: 1px solid rgba(0,180,216,.3);
+  color: var(--cyan);
+  font-family: var(--mono);
+  font-size: .65rem;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+.topbar-clock {
+  font-family: var(--mono);
+  font-size: .78rem;
+  color: var(--text-4);
+  margin-left: auto;
+  letter-spacing: .03em;
+}
+.topbar-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: .75rem;
+  color: var(--text-3);
+  font-weight: 500;
+}
+.status-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50% { opacity:.5; transform:scale(.8); }
+}
+
+/* ─── NAV TABS ─── */
+.nav {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 28px;
+  gap: 0;
+}
+.nav-tab {
+  padding: 14px 20px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--text-3);
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  border-bottom: 2px solid transparent;
+  transition: color .2s, border-color .2s;
+  position: relative;
+  top: 1px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.nav-tab svg { opacity: .6; }
+.nav-tab.active {
+  color: var(--navy);
+  border-bottom-color: var(--cyan);
+}
+.nav-tab.active svg { opacity: 1; }
+.nav-tab:hover:not(.active) { color: var(--text-2); }
+.nav-badge {
+  background: var(--cyan);
+  color: var(--white);
+  font-size: .6rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 10px;
+  min-width: 16px;
+  text-align: center;
+  font-family: var(--mono);
+}
+
+/* ─── MAIN LAYOUT ─── */
+.main { padding: 24px 28px; max-width: 1600px; margin: 0 auto; }
+.panel { display: none; animation: fadeUp .3s ease; }
+.panel.active { display: block; }
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(8px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+/* ─── CARDS ─── */
+.card {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+.card-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--white);
+}
+.card-title {
+  font-family: var(--serif);
+  font-size: 1rem;
+  color: var(--text-1);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.card-title-icon {
+  width: 28px; height: 28px;
+  background: var(--navy);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.card-subtitle {
+  font-size: .72rem;
+  color: var(--text-3);
+  font-weight: 400;
+  margin-top: 2px;
+}
+.card-body { padding: 20px; }
+
+/* ─── CHART PANEL ─── */
+.chart-layout {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 20px;
+}
+.chart-wrapper {
+  height: 560px;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+}
+.chart-sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+/* ─── STAT TILES ─── */
+.stat-tile {
+  background: var(--white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+}
+.stat-label {
+  font-size: .68rem;
+  font-weight: 600;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 8px;
+}
+.stat-value {
+  font-family: var(--mono);
+  font-size: 1.3rem;
+  font-weight: 500;
+  color: var(--text-1);
+  line-height: 1;
+}
+.stat-sub {
+  font-size: .72rem;
+  color: var(--text-3);
+  margin-top: 5px;
+  font-family: var(--mono);
+}
+.stat-tile.bullish { border-left: 3px solid var(--green); }
+.stat-tile.bearish { border-left: 3px solid var(--red); }
+.stat-tile.neutral { border-left: 3px solid var(--cyan); }
+
+/* ─── BIAS PILL ─── */
+.bias-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  font-family: var(--mono);
+}
+.bias-pill.bull  { background: var(--green-bg);  color: var(--green); }
+.bias-pill.bear  { background: var(--red-bg);    color: var(--red); }
+.bias-pill.fail  { background: var(--yellow-bg); color: var(--yellow); }
+.bias-pill.none  { background: var(--off);        color: var(--text-3); }
+
+/* ─── SYMBOL SELECTOR ─── */
+.symbol-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: var(--off);
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+.symbol-chip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: .78rem;
+  font-weight: 500;
+  background: var(--white);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all .15s;
+}
+.symbol-chip:hover { border-color: var(--cyan); color: var(--navy); }
+.symbol-chip.active { background: var(--navy); color: var(--white); border-color: var(--navy); }
+.symbol-chip .remove {
+  color: var(--text-4);
+  font-size: .9rem;
+  line-height: 1;
+  padding: 0 2px;
+  margin-left: 2px;
+}
+.symbol-chip:hover .remove { color: var(--red); }
+.add-symbol-form {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--white);
+  overflow: hidden;
+}
+.add-symbol-form input {
+  padding: 6px 10px;
+  font-size: .78rem;
+  width: 80px;
+  text-transform: uppercase;
+  color: var(--text-1);
+  font-family: var(--mono);
+}
+.add-symbol-form input::placeholder { color: var(--text-4); text-transform: none; }
+.add-symbol-form button {
+  padding: 6px 12px;
+  background: var(--navy);
+  color: var(--white);
+  font-size: .75rem;
+  font-weight: 600;
+}
+.add-symbol-form button:hover { background: var(--navy-mid); }
+
+/* ─── SCANNER TABLE ─── */
+.scanner-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.scanner-table th {
+  text-align: left;
+  padding: 10px 16px;
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--off);
+  white-space: nowrap;
+}
+.scanner-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: .82rem;
+  vertical-align: middle;
+}
+.scanner-table tr:last-child td { border-bottom: none; }
+.scanner-table tr { transition: background .15s; }
+.scanner-table tbody tr:hover { background: var(--off); }
+.ticker-cell {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: .9rem;
+  color: var(--navy);
+  cursor: pointer;
+  text-decoration: none;
+}
+.ticker-cell:hover { color: var(--cyan); text-decoration: underline; }
+.price-cell {
+  font-family: var(--mono);
+  font-weight: 500;
+  color: var(--text-1);
+}
+.change-pos { color: var(--green); font-family: var(--mono); font-weight: 500; }
+.change-neg { color: var(--red);   font-family: var(--mono); font-weight: 500; }
+.orb-range  { font-family: var(--mono); font-size: .75rem; color: var(--text-3); }
+.action-btn {
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-size: .72rem;
+  font-weight: 600;
+  background: var(--off);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  transition: all .15s;
+}
+.action-btn:hover { background: var(--navy); color: var(--white); border-color: var(--navy); }
+
+/* ─── ALERTS FEED ─── */
+.alerts-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--off);
+}
+.alerts-filter {
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: .72rem;
+  font-weight: 600;
+  color: var(--text-3);
+  border: 1px solid transparent;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  transition: all .15s;
+}
+.alerts-filter.active { background: var(--white); color: var(--navy); border-color: var(--border); box-shadow: var(--shadow-sm); }
+.alerts-list { padding: 0; max-height: 500px; overflow-y: auto; }
+.alert-item {
+  display: grid;
+  grid-template-columns: 100px 70px 120px 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  animation: slideIn .3s ease;
+  transition: background .15s;
+}
+.alert-item:hover { background: var(--off); }
+.alert-item:last-child { border-bottom: none; }
+@keyframes slideIn {
+  from { opacity:0; transform:translateX(-10px); }
+  to   { opacity:1; transform:translateX(0); }
+}
+.alert-time {
+  font-family: var(--mono);
+  font-size: .72rem;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.alert-ticker {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: .85rem;
+  color: var(--navy);
+}
+.alert-type {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .72rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.alert-type.up   { color: var(--green); }
+.alert-type.down { color: var(--red); }
+.alert-type.fail { color: var(--yellow); }
+.alert-desc { font-size: .78rem; color: var(--text-2); }
+.alert-price {
+  font-family: var(--mono);
+  font-weight: 600;
+  font-size: .82rem;
+  text-align: right;
+}
+.dismiss-btn {
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: .68rem;
+  color: var(--text-4);
+  border: 1px solid var(--border);
+  transition: all .15s;
+  white-space: nowrap;
+}
+.dismiss-btn:hover { color: var(--red); border-color: var(--red); }
+.empty-state {
+  padding: 60px 20px;
+  text-align: center;
+  color: var(--text-4);
+}
+.empty-state-icon { font-size: 2.5rem; margin-bottom: 12px; opacity: .4; }
+.empty-state-text { font-size: .82rem; }
+
+/* ─── P&L TRACKER ─── */
+.pnl-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border-radius: var(--radius) var(--radius) 0 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-bottom: none;
+}
+.pnl-kpi {
+  background: var(--white);
+  padding: 18px 20px;
+  text-align: center;
+}
+.pnl-kpi-label {
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 8px;
+}
+.pnl-kpi-value {
+  font-family: var(--mono);
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-1);
+}
+.pnl-kpi-value.pos { color: var(--green); }
+.pnl-kpi-value.neg { color: var(--red); }
+.pnl-kpi-sub {
+  font-size: .68rem;
+  color: var(--text-3);
+  margin-top: 4px;
+  font-family: var(--mono);
+}
+.pnl-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+  overflow: hidden;
+  background: var(--white);
+}
+.pnl-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.pnl-table th {
+  text-align: left;
+  padding: 10px 16px;
+  font-size: .67rem;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--off);
+  white-space: nowrap;
+}
+.pnl-table td {
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--border);
+  font-size: .8rem;
+  vertical-align: middle;
+}
+.pnl-table tr:last-child td { border-bottom: none; }
+.pnl-table tbody tr:hover { background: var(--off); }
+.trade-ticker { font-family: var(--mono); font-weight: 700; color: var(--navy); font-size: .88rem; }
+.trade-dir {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-family: var(--mono);
+}
+.trade-dir.long  { background: var(--green-bg); color: var(--green); }
+.trade-dir.short { background: var(--red-bg);   color: var(--red); }
+.trade-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 4px;
+  font-size: .68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-family: var(--mono);
+}
+.trade-status.open   { background: #EEF2FF; color: #3B5BDB; }
+.trade-status.win    { background: var(--green-bg); color: var(--green); }
+.trade-status.loss   { background: var(--red-bg);   color: var(--red); }
+.mono { font-family: var(--mono); }
+.text-3 { color: var(--text-3); }
+.pnl-pos { color: var(--green); font-family: var(--mono); font-weight: 600; }
+.pnl-neg { color: var(--red);   font-family: var(--mono); font-weight: 600; }
+.close-trade-btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: .7rem;
+  font-weight: 600;
+  background: var(--off);
+  color: var(--text-2);
+  border: 1px solid var(--border);
+  transition: all .15s;
+}
+.close-trade-btn:hover { background: var(--red-bg); color: var(--red); border-color: var(--red); }
+
+/* ─── CLOSE MODAL ─── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10,22,40,.45);
+  z-index: 500;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(3px);
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: var(--white);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  padding: 28px;
+  width: 360px;
+  animation: fadeUp .2s ease;
+}
+.modal-title { font-family: var(--serif); font-size: 1.1rem; margin-bottom: 18px; }
+.modal-field { margin-bottom: 14px; }
+.modal-label { font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); margin-bottom: 5px; }
+.modal-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: var(--mono);
+  font-size: .85rem;
+  color: var(--text-1);
+  transition: border-color .15s;
+}
+.modal-input:focus { border-color: var(--cyan); outline: none; box-shadow: 0 0 0 3px rgba(0,180,216,.1); }
+.modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+.modal-btn {
+  flex: 1;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: .8rem;
+  font-weight: 600;
+  transition: all .15s;
+}
+.modal-btn.primary { background: var(--navy); color: var(--white); }
+.modal-btn.primary:hover { background: var(--navy-mid); }
+.modal-btn.cancel { background: var(--off); color: var(--text-2); border: 1px solid var(--border); }
+.modal-btn.cancel:hover { border-color: var(--border-strong); }
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-4); }
+
+/* ─── SETUP / KEY MODAL ─── */
+.setup-box { width: 440px; max-width: 92vw; }
+.setup-lead { font-size: .82rem; color: var(--text-2); line-height: 1.55; margin-bottom: 16px; }
+.setup-steps { list-style: none; margin: 0 0 16px; padding: 0; counter-reset: s; }
+.setup-steps li { position: relative; padding: 0 0 12px 30px; font-size: .8rem; color: var(--text-2); line-height: 1.5; counter-increment: s; }
+.setup-steps li::before { content: counter(s); position: absolute; left: 0; top: -1px; width: 20px; height: 20px; border-radius: 50%; background: var(--navy); color: #fff; font-size: .68rem; font-weight: 700; display: flex; align-items: center; justify-content: center; font-family: var(--mono); }
+.setup-link { display: inline-flex; align-items: center; gap: 6px; padding: 9px 14px; background: var(--cyan); color: #fff; border-radius: 6px; font-size: .78rem; font-weight: 600; text-decoration: none; margin-bottom: 14px; transition: background .15s; }
+.setup-link:hover { background: #0098b8; }
+.setup-feedback { font-size: .74rem; margin-top: 8px; min-height: 16px; font-family: var(--mono); }
+.setup-feedback.ok { color: var(--green); }
+.setup-feedback.err { color: var(--red); }
+.setup-feedback.busy { color: var(--text-3); }
+
+/* ─── STATUS BANNER ─── */
+.banner { display: none; align-items: center; gap: 10px; padding: 9px 28px; font-size: .78rem; font-weight: 500; }
+.banner.show { display: flex; }
+.banner.info { background: var(--cyan-light); color: #0a6e85; border-bottom: 1px solid #bfeaf3; }
+.banner.warn { background: var(--yellow-bg); color: var(--yellow); border-bottom: 1px solid #f3e2bd; }
+.banner.err  { background: var(--red-bg); color: var(--red); border-bottom: 1px solid #f3c9c2; }
+.banner-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.banner-act { margin-left: auto; font-weight: 600; text-decoration: underline; cursor: pointer; white-space: nowrap; }
+
+/* ─── DATA STATES ─── */
+.topbar-key { display: flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 6px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); color: #cfd6e4; font-size: .72rem; font-weight: 500; cursor: pointer; transition: all .15s; }
+.topbar-key:hover { background: rgba(255,255,255,.16); color: #fff; }
+.status-dot.closed { background: var(--text-4); animation: none; }
+.stale-badge { font-size: .6rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--text-3); background: var(--off); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; margin-left: 6px; font-family: var(--mono); }
+.row-msg { color: var(--text-3); font-size: .8rem; font-style: italic; }
+.row-msg.err { color: var(--red); font-style: normal; }
+@keyframes shimmer { 0%{opacity:.4} 50%{opacity:.9} 100%{opacity:.4} }
+.loading-cell { color: var(--text-4); animation: shimmer 1.2s infinite; font-family: var(--mono); font-size: .8rem; }
+
+/* ─── HELP / GUIDE MODAL ─── */
+.help-box { width: 600px; max-width: 94vw; max-height: 86vh; display: flex; flex-direction: column; padding: 0; }
+.help-head { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px 14px; border-bottom: 1px solid var(--border); }
+.help-head .modal-title { margin: 0; }
+.help-body { padding: 18px 24px 24px; overflow-y: auto; }
+.help-h { font-family: var(--serif); font-size: 1rem; color: var(--text-1); margin: 22px 0 8px; }
+.help-h:first-child { margin-top: 2px; }
+.help-p { font-size: .82rem; color: var(--text-2); line-height: 1.6; margin-bottom: 10px; }
+.help-ol { margin: 0 0 12px 20px; }
+.help-ol li { font-size: .82rem; color: var(--text-2); line-height: 1.6; margin-bottom: 6px; }
+.faq-q { font-size: .82rem; font-weight: 700; color: var(--text-1); margin: 15px 0 3px; }
+.faq-a { font-size: .81rem; color: var(--text-2); line-height: 1.6; }
+.help-code { font-family: var(--mono); font-size: .74rem; background: var(--off); border: 1px solid var(--border); border-radius: 4px; padding: 1px 6px; }
+
+/* ─── RESPONSIVE ─── */
+@media (max-width: 1100px) {
+  .chart-layout { grid-template-columns: 1fr; }
+  .chart-sidebar { flex-direction: row; flex-wrap: wrap; }
+  .pnl-summary { grid-template-columns: repeat(2,1fr); }
+}
+@media (max-width: 700px) {
+  .main { padding: 16px; }
+  .topbar { padding: 0 16px; }
+  .nav { padding: 0 16px; }
+  .pnl-summary { grid-template-columns: 1fr 1fr; }
+  .alert-item { grid-template-columns: 1fr 1fr; grid-template-rows: auto auto; }
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-logo">
+    <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+      <rect width="22" height="22" rx="5" fill="#00B4D8" opacity=".15"/>
+      <path d="M4 18 L8 10 L11 14 L14 8 L18 18" stroke="#00B4D8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      <circle cx="11" cy="5" r="2" fill="#00B4D8"/>
+    </svg>
+    ORB<span>it</span> Dashboard
+  </div>
+  <div class="topbar-pill">Pine Script v5</div>
+  <div class="topbar-status">
+    <div class="status-dot" id="statusDot"></div>
+    <span id="marketStatus">Connecting…</span>
+  </div>
+  <div class="topbar-clock" id="clock">--:--:-- ET</div>
+  <button class="topbar-key" onclick="showHelp()" title="How to use this dashboard" style="margin-right:2px;">
+    <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.1"/><path d="M5.5 5.4a1.6 1.6 0 1 1 2.1 1.5c-.5.3-.6.5-.6 1v.2" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" fill="none"/><circle cx="7" cy="10.2" r=".6" fill="currentColor"/></svg>
+    <span>Guide</span>
+  </button>
+  <button class="topbar-key" id="keyBtn" onclick="showKeyModal()" title="Data connection settings">
+    <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M9 1.2a3.8 3.8 0 0 0-3.7 4.8L1.3 10v2.7H4v-1.3h1.3V10h1.2l.5-.5A3.8 3.8 0 1 0 9 1.2Zm1.4 3a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z" stroke="currentColor" stroke-width="1.1" fill="none"/></svg>
+    <span id="keyBtnLabel">Connect data</span>
+  </button>
+</header>
+
+<!-- STATUS BANNER -->
+<div class="banner" id="banner">
+  <span class="banner-dot"></span>
+  <span id="bannerMsg"></span>
+  <span class="banner-act" id="bannerAct" onclick="bannerAction()" style="display:none;"></span>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-tab active" onclick="switchTab('chart', this)">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="6" width="2" height="7" rx="1" fill="currentColor"/><rect x="5" y="3" width="2" height="10" rx="1" fill="currentColor"/><rect x="9" y="1" width="2" height="12" rx="1" fill="currentColor"/><rect x="13" y="4" width="2" height="9" rx="1" fill="currentColor" opacity=".4"/></svg>
+    Chart
+  </div>
+  <div class="nav-tab" onclick="switchTab('scanner', this)">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="currentColor" stroke-width="1.5"/><path d="M9.5 9.5L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+    Scanner
+  </div>
+  <div class="nav-tab" onclick="switchTab('alerts', this)">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5C4.5 1.5 3 3.5 3 6c0 2.5-1.5 3.5-1.5 3.5h11S11 8.5 11 6c0-2.5-1.5-4.5-4-4.5z" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M5.5 10c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5" stroke="currentColor" stroke-width="1.4"/></svg>
+    Alerts
+    <span class="nav-badge" id="alertBadge">0</span>
+  </div>
+  <div class="nav-tab" onclick="switchTab('pnl', this)">
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.4"/><path d="M4 9l2-2.5L8 8l2-3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    P&amp;L Tracker
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+
+  <!-- ── CHART PANEL ── -->
+  <div class="panel active" id="panel-chart">
+    <div class="symbol-bar" id="chartSymbolBar">
+      <!-- chips populated by JS -->
+      <div class="add-symbol-form">
+        <input type="text" id="chartTickerInput" placeholder="Add ticker" maxlength="8"/>
+        <button onclick="addTicker()">+ Add</button>
+      </div>
+    </div>
+    <div class="chart-layout" style="margin-top:16px;">
+      <div class="chart-wrapper">
+        <div id="tv-chart-container" style="width:100%;height:100%;"></div>
+      </div>
+      <div class="chart-sidebar">
+        <div class="stat-tile neutral">
+          <div class="stat-label">Active Symbol</div>
+          <div class="stat-value" id="activeSymbolDisplay">SPY</div>
+          <div class="stat-sub">Click a ticker above to switch</div>
+        </div>
+        <div class="stat-tile" id="biasTile">
+          <div class="stat-label">ORB Bias</div>
+          <div id="biasDisplay"><span class="bias-pill none">Awaiting OR</span></div>
+          <div class="stat-sub" id="biasSubtext">Opens 9:30 AM ET</div>
+        </div>
+        <div class="stat-tile neutral">
+          <div class="stat-label">ORB Range</div>
+          <div class="stat-value" id="orbRangeDisplay">—</div>
+          <div class="stat-sub" id="orbRangeSubtext">High – Low</div>
+        </div>
+        <div class="stat-tile neutral">
+          <div class="stat-label">Session P&amp;L</div>
+          <div class="stat-value" id="sessionPnlDisplay">$0.00</div>
+          <div class="stat-sub">From logged trades</div>
+        </div>
+        <div class="card" style="flex:1;">
+          <div class="card-header" style="padding:12px 16px;">
+            <div style="font-size:.72rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);">Quick Log</div>
+          </div>
+          <div style="padding:14px;">
+            <div style="font-size:.75rem;color:var(--text-3);margin-bottom:10px;">Manually fire a breakout signal:</div>
+            <div style="display:flex;gap:8px;">
+              <button onclick="manualSignal('long')" style="flex:1;padding:9px 0;background:var(--green-bg);color:var(--green);border:1px solid var(--green);border-radius:6px;font-size:.75rem;font-weight:700;transition:all .15s;">▲ Long</button>
+              <button onclick="manualSignal('short')" style="flex:1;padding:9px 0;background:var(--red-bg);color:var(--red);border:1px solid var(--red);border-radius:6px;font-size:.75rem;font-weight:700;transition:all .15s;">▼ Short</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCANNER PANEL ── -->
+  <div class="panel" id="panel-scanner">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <div>
+          <div class="card-title">
+            <div class="card-title-icon">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="6" cy="6" r="4.5" stroke="white" stroke-width="1.5"/><path d="M9.5 9.5L13 13" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </div>
+            ORB Scanner
+          </div>
+          <div class="card-subtitle">Live ORB Fibonacci bias across your watchlist</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <label style="font-size:.68rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-3);">OR Window</label>
+          <select id="orLenSelect" onchange="changeOrLength(this.value)" style="padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:.75rem;font-weight:600;color:var(--text-2);background:var(--white);font-family:var(--sans);cursor:pointer;">
+            <option value="5">5 min</option>
+            <option value="15">15 min</option>
+            <option value="30">30 min</option>
+          </select>
+          <button onclick="refreshScanner()" style="padding:7px 14px;background:var(--off);border:1px solid var(--border);border-radius:6px;font-size:.75rem;font-weight:600;color:var(--text-2);display:flex;align-items:center;gap:6px;transition:all .15s;" onmouseover="this.style.borderColor='var(--cyan)'" onmouseout="this.style.borderColor='var(--border)'">
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M1 6A5 5 0 0 1 10.5 3.5M11 6A5 5 0 0 1 1.5 8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10 1v3h-3M2 11V8h3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+      <div class="symbol-bar" id="scannerSymbolBar">
+        <div class="add-symbol-form">
+          <input type="text" id="scannerTickerInput" placeholder="Add ticker" maxlength="8"/>
+          <button onclick="addScannerTicker()">+ Add</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="scanner-table">
+          <thead>
+            <tr>
+              <th>Symbol</th>
+              <th>Last Price</th>
+              <th>Change</th>
+              <th>ORB Bias</th>
+              <th>ORB Range</th>
+              <th>Fib 0.0%</th>
+              <th>Fib 50%</th>
+              <th>Fib 100%</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="scannerBody">
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ALERTS PANEL ── -->
+  <div class="panel" id="panel-alerts">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">
+            <div class="card-title-icon">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5C4.5 1.5 3 3.5 3 6c0 2.5-1.5 3.5-1.5 3.5h11S11 8.5 11 6c0-2.5-1.5-4.5-4-4.5z" stroke="white" stroke-width="1.4" fill="none"/><path d="M5.5 10c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5" stroke="white" stroke-width="1.4"/></svg>
+            </div>
+            Alert Feed
+          </div>
+          <div class="card-subtitle">ORB breakout and bias failure events</div>
+        </div>
+        <button onclick="clearAlerts()" style="padding:7px 14px;background:var(--off);border:1px solid var(--border);border-radius:6px;font-size:.75rem;font-weight:600;color:var(--text-2);transition:all .15s;" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-2)'">Clear All</button>
+      </div>
+      <div class="alerts-toolbar">
+        <button class="alerts-filter active" onclick="filterAlerts('all', this)">All</button>
+        <button class="alerts-filter" onclick="filterAlerts('up', this)">Breakout ↑</button>
+        <button class="alerts-filter" onclick="filterAlerts('down', this)">Breakdown ↓</button>
+        <button class="alerts-filter" onclick="filterAlerts('fail', this)">Bias Fail</button>
+      </div>
+      <div class="alerts-list" id="alertsList">
+        <div class="empty-state">
+          <div class="empty-state-icon">🔔</div>
+          <div class="empty-state-text">No alerts yet. Add tickers to your scanner to begin monitoring.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── P&L PANEL ── -->
+  <div class="panel" id="panel-pnl">
+    <div class="pnl-summary">
+      <div class="pnl-kpi">
+        <div class="pnl-kpi-label">Total P&amp;L</div>
+        <div class="pnl-kpi-value" id="kpiTotal">$0.00</div>
+        <div class="pnl-kpi-sub">All closed trades</div>
+      </div>
+      <div class="pnl-kpi">
+        <div class="pnl-kpi-label">Win Rate</div>
+        <div class="pnl-kpi-value" id="kpiWinRate">—</div>
+        <div class="pnl-kpi-sub">Closed trades only</div>
+      </div>
+      <div class="pnl-kpi">
+        <div class="pnl-kpi-label">Open Trades</div>
+        <div class="pnl-kpi-value" id="kpiOpen">0</div>
+        <div class="pnl-kpi-sub">Currently active</div>
+      </div>
+      <div class="pnl-kpi">
+        <div class="pnl-kpi-label">Avg Winner</div>
+        <div class="pnl-kpi-value pos" id="kpiAvgWin">—</div>
+        <div class="pnl-kpi-sub">Per winning trade</div>
+      </div>
+    </div>
+    <div class="pnl-table-wrap">
+      <table class="pnl-table">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Direction</th>
+            <th>Entry Time</th>
+            <th>Entry Price</th>
+            <th>Target (50%)</th>
+            <th>Target (100%)</th>
+            <th>Exit Price</th>
+            <th>P&amp;L</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="pnlBody">
+          <tr>
+            <td colspan="10" style="text-align:center;padding:50px;color:var(--text-4);font-size:.82rem;">
+              No trades logged. Signals auto-detected from scanner or manually fired from the Chart panel.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- HELP / GUIDE MODAL -->
+<div class="modal-overlay" id="helpModal">
+  <div class="modal-box help-box">
+    <div class="help-head">
+      <div class="modal-title">How to use ORBit Dashboard</div>
+      <button onclick="hideHelp()" aria-label="Close" title="Close" style="background:none;border:none;font-size:1.25rem;line-height:1;color:var(--text-3);cursor:pointer;padding:0 2px;">&times;</button>
+    </div>
+    <div class="help-body">
+      <div class="help-h">Quick start — 1 minute, once per device</div>
+      <ol class="help-ol">
+        <li>Click <strong>Connect data</strong> (top right).</li>
+        <li>Click <strong>Get your free key</strong> — it opens Twelve Data. Create a free account (no card needed) and copy your API key.</li>
+        <li>Paste it and click <strong>Test &amp; Save</strong>. It's stored on this device, so you won't be asked again.</li>
+      </ol>
+      <div class="help-p">Each person uses their <strong>own</strong> free key, so nobody shares limits.</div>
+
+      <div class="help-h">Using the dashboard</div>
+      <div class="help-p"><strong>Chart</strong> — a live TradingView chart of the selected symbol. Click a ticker chip to switch, or type a ticker and press <strong>+ Add</strong>.</div>
+      <div class="help-p"><strong>Scanner</strong> — your whole watchlist at a glance: price, % change, ORB bias, the opening range, Fib levels, and status (Inside / Breakout / Failed). Use <span class="help-code">OR Window</span> to set the opening-range length (5, 15, or 30 min). <strong>Refresh</strong> pulls fresh data.</div>
+      <div class="help-p"><strong>Alerts</strong> — a running feed of breakouts, breakdowns, and bias failures. Filter by type or clear them.</div>
+      <div class="help-p"><strong>P&amp;L Tracker</strong> — trades log automatically on a breakout (or fire one manually from the Chart panel). Hit <strong>Close</strong> with the exit price to record the result; the KPIs update automatically.</div>
+
+      <div class="help-h">FAQ &amp; troubleshooting</div>
+      <div class="faq-q">It says “Market closed,” or prices show a “last close” tag.</div>
+      <div class="faq-a">The US market is closed (regular hours 9:30 AM–4:00 PM ET, Mon–Fri). You're seeing the last session's data; live updates resume automatically when it reopens.</div>
+      <div class="faq-q">A row says “Awaiting opening range.”</div>
+      <div class="faq-a">The opening range hasn't finished forming. It completes a few minutes after 9:30 AM ET (after your chosen 5/15/30-min window). Bias and levels appear once it's set.</div>
+      <div class="faq-q">A ticker shows “Invalid symbol.”</div>
+      <div class="faq-a">That symbol wasn't found on a US exchange — check the spelling. For class shares use a dot, e.g. <span class="help-code">BRK.B</span>.</div>
+      <div class="faq-q">Updates paused, or “hit the free data limit.”</div>
+      <div class="faq-a">The free data plan has a daily cap. The dashboard automatically slows down and resumes, and only polls while the market is open to conserve usage. If it happens often, make sure each person uses their own key, or upgrade your Twelve Data plan.</div>
+      <div class="faq-q">“Your data key was rejected.”</div>
+      <div class="faq-a">Re-copy the whole key (no extra spaces) and reconnect via <strong>Connect data</strong> at the top right.</div>
+      <div class="faq-q">Nothing loads.</div>
+      <div class="faq-a">Check your internet, and make sure you've connected a key — the top right shows “Data connected” when you're set.</div>
+      <div class="faq-q">Do I need an account or password?</div>
+      <div class="faq-a">No. Your key and watchlist are saved in this browser. On a different device or browser you'll re-enter the key once. (Cross-device sync may come later.)</div>
+      <div class="faq-q">Is my key safe?</div>
+      <div class="faq-a">Yes — it's stored only on your device and sent only to Twelve Data (the data provider). It never goes anywhere else.</div>
+      <div class="faq-q">The numbers differ slightly from my broker.</div>
+      <div class="faq-a">Free market data can be lightly delayed, and the opening range is built from 5-minute bars. Always confirm exact fills in your broker.</div>
+
+      <div class="help-h">About the data &amp; your API key</div>
+      <div class="help-p">Prices come from <strong>Twelve Data</strong>'s free tier (about 800 requests/day, 8/minute). To stay inside that, the dashboard locks each symbol's opening range once it's set, then only checks the live price about every 30 seconds while the market is open.</div>
+      <div class="help-p">Get a free key at <span class="help-code">twelvedata.com</span> → sign up → copy the API key → paste it via <strong>Connect data</strong>. You can reopen that screen anytime to change keys. This is an educational tool — <strong>not financial advice.</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- SETUP / API KEY MODAL -->
+<div class="modal-overlay" id="setupModal">
+  <div class="modal-box setup-box">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
+      <div class="modal-title">Connect live market data</div>
+      <button onclick="hideKeyModal()" aria-label="Close" title="Close" style="background:none;border:none;font-size:1.25rem;line-height:1;color:var(--text-3);cursor:pointer;padding:0 2px;margin-top:-2px;">&times;</button>
+    </div>
+    <div class="setup-lead">This dashboard streams real prices from Twelve Data, a free market-data service. You'll need a free key (takes about a minute). You only do this once — it's saved on this device.</div>
+    <ol class="setup-steps">
+      <li>Click the button below to open Twelve Data's free sign-up in a new tab.</li>
+      <li>Create a free account (email + password). No card required.</li>
+      <li>On your dashboard there, copy your <strong>API key</strong>.</li>
+      <li>Paste it below and press <strong>Test &amp; Save</strong>.</li>
+    </ol>
+    <a class="setup-link" href="https://twelvedata.com/pricing" target="_blank" rel="noopener">Get your free key ↗</a>
+    <div class="modal-field">
+      <div class="modal-label">Your API key</div>
+      <input class="modal-input" type="text" id="apiKeyInput" placeholder="paste key here" autocomplete="off" spellcheck="false"/>
+      <div class="setup-feedback" id="setupFeedback"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="hideKeyModal()" id="setupCancelBtn">Cancel</button>
+      <button class="modal-btn primary" onclick="testAndSaveKey()" id="setupSaveBtn">Test &amp; Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLOSE TRADE MODAL -->
+<div class="modal-overlay" id="closeModal">
+  <div class="modal-box">
+    <div class="modal-title">Close Trade</div>
+    <div class="modal-field">
+      <div class="modal-label">Symbol</div>
+      <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--navy);" id="modalSymbol">—</div>
+    </div>
+    <div class="modal-field">
+      <div class="modal-label">Exit Price</div>
+      <input class="modal-input" type="number" step="0.01" id="modalExitPrice" placeholder="e.g. 452.75"/>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn primary" onclick="confirmClose()">Close Trade</button>
+    </div>
+  </div>
+</div>
+
+<!-- TRADINGVIEW WIDGET SCRIPT -->
+<script src="https://s3.tradingview.com/tv.js"></script>
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let tickers   = ['SPY','QQQ','AAPL'];
+let activeSymbol = 'SPY';
+let scannerData  = {};   // { ticker: { bias, orbHigh, orbLow, price, change, chgPct, status } }
+let alerts       = [];   // { id, time, ticker, type, desc, price }
+let trades       = [];   // { id, ticker, dir, entryTime, entryPrice, fibMid, fib100, exitPrice, pnl, status }
+let alertFilter  = 'all';
+let tvWidget     = null;
+let closingTradeId = null;
+
+// ─── LIVE DATA CONFIG / STATE ───
+const TD_BASE   = 'https://api.twelvedata.com';
+let apiKey      = (function(){ try { return localStorage.getItem('orb_td_key') || ''; } catch(e){ return ''; } })();
+let orLength    = (function(){ try { return +localStorage.getItem('orb_or_len') || 5; } catch(e){ return 5; } })(); // 5 | 15 | 30 (Pine OR_Length)
+let orCache     = {};     // { ticker: { date, orbHigh, orbLow, orbClose, orbMid, range, bias } }
+let prevStatus  = {};     // { ticker: 'inside'|'breakout'|'failed' } — for one-shot transition alerts
+let marketOpen  = null;   // last known is_market_open
+let rateLimited = false;
+let liveActive  = false;
+let liveTimer   = null;
+let bannerActFn = null;
+const OPEN_REFRESH_MS = 30000;    // poll cadence while market open
+const CLOSED_REFRESH_MS = 300000; // slow poll while closed (to detect reopen)
+
+// ═══════════════════════════════════════════
+// CLOCK
+// ═══════════════════════════════════════════
+function updateClock() {
+  const et = new Date().toLocaleTimeString('en-US', { timeZone:'America/New_York', hour12:false });
+  document.getElementById('clock').textContent = et + ' ET';
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ═══════════════════════════════════════════
+// TAB NAVIGATION
+// ═══════════════════════════════════════════
+function switchTab(id, el) {
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+  if (id === 'chart' && !tvWidget) initChart();
+}
+
+// ═══════════════════════════════════════════
+// TRADINGVIEW CHART
+// ═══════════════════════════════════════════
+function initChart() {
+  // The tv.js embed widget exposes no .remove(); clear the container before re-creating.
+  const chartContainer = document.getElementById('tv-chart-container');
+  if (chartContainer) chartContainer.innerHTML = '';
+  tvWidget = null;
+  tvWidget = new TradingView.widget({
+    container_id: 'tv-chart-container',
+    symbol: activeSymbol,
+    interval: '5',
+    timezone: 'America/New_York',
+    theme: 'light',
+    style: '1',
+    locale: 'en',
+    toolbar_bg: '#F7F8FA',
+    enable_publishing: false,
+    hide_top_toolbar: false,
+    hide_legend: false,
+    save_image: true,
+    height: '100%',
+    width: '100%',
+    studies: [],
+    allow_symbol_change: true,
+    details: true,
+    hotlist: false,
+    calendar: false,
+    show_popup_button: false,
+  });
+}
+
+// ═══════════════════════════════════════════
+// TICKER MANAGEMENT
+// ═══════════════════════════════════════════
+function addTicker() {
+  const inp = document.getElementById('chartTickerInput');
+  const sym = inp.value.trim().toUpperCase().replace(/[^A-Z.\-]/g,'');
+  if (!sym || tickers.includes(sym)) { inp.value=''; return; }
+  tickers.push(sym);
+  inp.value = '';
+  addSymbolLive(sym);
+}
+
+function addScannerTicker() {
+  const inp = document.getElementById('scannerTickerInput');
+  const sym = inp.value.trim().toUpperCase().replace(/[^A-Z.\-]/g,'');
+  if (!sym || tickers.includes(sym)) { inp.value=''; return; }
+  tickers.push(sym);
+  inp.value = '';
+  addSymbolLive(sym);
+}
+
+function removeTicker(sym) {
+  const wasActive = activeSymbol === sym;
+  tickers = tickers.filter(t => t !== sym);
+  if (wasActive) { activeSymbol = tickers[0] || 'SPY'; }
+  delete scannerData[sym];
+  renderChips();
+  renderScannerChips();
+  renderScannerTable();
+  document.getElementById('activeSymbolDisplay').textContent = activeSymbol;
+  if (wasActive && tvWidget) initChart();
+  updateChartSidebar();
+}
+
+function setActive(sym) {
+  activeSymbol = sym;
+  document.getElementById('activeSymbolDisplay').textContent = sym;
+  renderChips();
+  renderScannerChips();
+  // tv.js embed widget can't switch symbols via API — re-create it with the new symbol.
+  if (tvWidget) {
+    initChart();
+  }
+  updateChartSidebar();
+}
+
+function renderChips() {
+  const bar = document.getElementById('chartSymbolBar');
+  const form = bar.querySelector('.add-symbol-form');
+  bar.querySelectorAll('.symbol-chip').forEach(c => c.remove());
+  tickers.forEach(sym => {
+    const chip = document.createElement('div');
+    chip.className = 'symbol-chip' + (sym === activeSymbol ? ' active' : '');
+    chip.innerHTML = `<span onclick="setActive('${sym}')">${sym}</span><span class="remove" onclick="removeTicker('${sym}')">×</span>`;
+    bar.insertBefore(chip, form);
+  });
+}
+
+function renderScannerChips() {
+  const bar = document.getElementById('scannerSymbolBar');
+  const form = bar.querySelector('.add-symbol-form');
+  bar.querySelectorAll('.symbol-chip').forEach(c => c.remove());
+  tickers.forEach(sym => {
+    const chip = document.createElement('div');
+    chip.className = 'symbol-chip' + (sym === activeSymbol ? ' active' : '');
+    chip.innerHTML = `<span onclick="setActive('${sym}')">${sym}</span><span class="remove" onclick="removeTicker('${sym}')">×</span>`;
+    bar.insertBefore(chip, form);
+  });
+}
+
+// ═══════════════════════════════════════════
+// LIVE MARKET DATA (Twelve Data) — single seam, replaces the old simulator
+// Mirrors the Pine Script: Opening Range from the 9:30 session open, directional
+// Fib flip on ORClose vs ORMid, breakout/failure on price vs ORHigh/ORLow.
+// ═══════════════════════════════════════════
+
+// Current date + minutes-since-midnight in America/New_York (handles ET correctly).
+function nowET() {
+  const f = new Intl.DateTimeFormat('en-CA', { timeZone:'America/New_York', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false });
+  const p = {}; f.formatToParts(new Date()).forEach(x => p[x.type] = x.value);
+  return { date: `${p.year}-${p.month}-${p.day}`, minutes: (+p.hour) * 60 + (+p.minute) };
+}
+
+// Low-level Twelve Data fetch with normalized error throwing.
+async function tdFetch(path) {
+  const key = apiKey || 'demo';
+  const url = TD_BASE + path + (path.includes('?') ? '&' : '?') + 'apikey=' + encodeURIComponent(key);
+  const res = await fetch(url);
+  if (res.status === 429) throw { code: 429, message: 'rate limit' };
+  let j;
+  try { j = await res.json(); } catch(e) { throw { code: 0, message: 'bad response' }; }
+  if (j && j.status === 'error') throw { code: j.code, message: j.message || 'error' };
+  return j;
+}
+
+// Compute the Opening Range from real 5-min bars (aggregates orLength/5 bars from 09:30).
+async function fetchOpeningRange(sym) {
+  const need = Math.max(1, Math.round(orLength / 5));
+  const j = await tdFetch(`/time_series?symbol=${encodeURIComponent(sym)}&interval=5min&outputsize=160&order=ASC&timezone=America/New_York&country=United%20States`);
+  const vals = (j && j.values) || [];
+  if (!vals.length) return null;
+  // Group RTH bars (09:30–16:00) by date; prefer today, else the most recent session present.
+  const byDate = {};
+  vals.forEach(v => {
+    const t = v.datetime.slice(11);
+    if (t >= '09:30:00' && t < '16:00:00') { const d = v.datetime.slice(0,10); (byDate[d] = byDate[d] || []).push(v); }
+  });
+  const today = nowET().date;
+  const targetDate = byDate[today] ? today : Object.keys(byDate).sort().pop();
+  if (!targetDate) return null;
+  const bars = byDate[targetDate];
+  if (bars.length < need) return null; // opening range not complete yet
+  const orBars = bars.slice(0, need);
+  let hi = -Infinity, lo = Infinity;
+  orBars.forEach(b => { hi = Math.max(hi, +b.high); lo = Math.min(lo, +b.low); });
+  const orbClose = +orBars[orBars.length - 1].close;
+  const orbMid = (hi + lo) / 2;
+  if (!isFinite(hi) || !isFinite(lo) || !isFinite(orbClose)) return null;
+  return {
+    date: targetDate,
+    orbHigh: +hi.toFixed(2), orbLow: +lo.toFixed(2),
+    orbClose: +orbClose.toFixed(2), orbMid: +orbMid.toFixed(2),
+    range: +(hi - lo).toFixed(2),
+    bias: orbClose >= orbMid ? 'bull' : 'bear'   // Pine: bullishORB = ORClose >= ORMid
+  };
+}
+
+// Latest quote: price, change, market-open flag.
+async function fetchQuote(sym) {
+  const j = await tdFetch(`/quote?symbol=${encodeURIComponent(sym)}&country=United%20States`);
+  const price = parseFloat(j.close);
+  if (!isFinite(price)) throw { code: 0, message: 'no price' };
+  return {
+    price,
+    prevClose: parseFloat(j.previous_close),
+    change: parseFloat(j.change),
+    chgPct: parseFloat(j.percent_change),
+    marketOpen: !!j.is_market_open,
+    lastQuoteAt: j.last_quote_at || j.timestamp || null,
+    name: j.name || sym
+  };
+}
+
+// Refresh one ticker: ensure OR cached for today, fetch live price, derive status, fire alerts.
+async function refreshSymbol(sym) {
+  try {
+    const today = nowET().date;
+    let or = orCache[sym];
+    if (!or || or.date !== today) {            // re-establish OR on a new trading day (test 18)
+      const fresh = await fetchOpeningRange(sym);
+      if (fresh) { or = orCache[sym] = fresh; }
+      else { or = null; }
+    }
+    const q = await fetchQuote(sym);
+    marketOpen = q.marketOpen;
+    if (!or) {                                  // pre-9:35 or no session yet (test 6)
+      scannerData[sym] = { pending:true, price:+q.price.toFixed(2), prevClose:q.prevClose, change:+(q.change||0).toFixed(2), chgPct:+(q.chgPct||0).toFixed(2), marketOpen:q.marketOpen, lastQuoteAt:q.lastQuoteAt };
+      return;
+    }
+    const price = q.price, bias = or.bias;
+    const bullFail = bias === 'bull' && price < or.orbLow;
+    const bearFail = bias === 'bear' && price > or.orbHigh;
+    const brkUp    = bias === 'bull' && price > or.orbHigh;
+    const brkDn    = bias === 'bear' && price < or.orbLow;
+    let status = 'inside';
+    if (bullFail || bearFail) status = 'failed';
+    else if (brkUp || brkDn)  status = 'breakout';
+    scannerData[sym] = {
+      bias, orbHigh:or.orbHigh, orbLow:or.orbLow, orbMid:or.orbMid, orbClose:or.orbClose, range:or.range,
+      price:+price.toFixed(2), prevClose:q.prevClose, change:+(q.change||0).toFixed(2), chgPct:+(q.chgPct||0).toFixed(2),
+      status, marketOpen:q.marketOpen, lastQuoteAt:q.lastQuoteAt
+    };
+    // Fire an alert only on a *transition* (mirrors Pine crossover/crossunder, not every poll).
+    if (status !== prevStatus[sym]) {
+      if (status === 'breakout') {
+        pushAlert(sym, brkUp ? 'up' : 'down', brkUp ? 'ORB Breakout — price crossed above ORB High' : 'ORB Breakdown — price crossed below ORB Low', price);
+        autoLogTrade(sym, brkUp ? 'long' : 'short', price, or.orbHigh, or.orbLow);
+      } else if (status === 'failed') {
+        pushAlert(sym, 'fail', bias === 'bull' ? 'Bullish bias failed — price below ORB Low' : 'Bearish bias failed — price above ORB High', price);
+      }
+      prevStatus[sym] = status;
+    }
+  } catch (err) {
+    handleApiError(err, sym);
+  }
+}
+
+// Refresh all tickers sequentially (gentle on the rate limit), then re-render.
+async function refreshAll() {
+  if (!apiKey) return;
+  for (const sym of tickers) {
+    if (!liveActive && tickers.length > 3) break;
+    await refreshSymbol(sym);
+    renderScannerTable();
+  }
+  renderScannerTable();
+  updateMarketStatus();
+  updateChartSidebar();
+  renderPnlTable();
+  updateKPIs();
+}
+
+// ─── ERROR HANDLING (test cases 2,7,8,10,20) ───
+function handleApiError(err, sym) {
+  const code = err && err.code;
+  const msg  = (err && err.message) || '';
+  if (code === 429 || /limit|run out|credit|too many/i.test(msg)) { setRateLimited(); return; }
+  if (code === 401 || code === 403 || /api key|apikey|unauthor/i.test(msg)) {
+    setBanner('err', 'Your data key was rejected. Please reconnect.', 'Reconnect', showKeyModal);
+    markStatus('Key error', true);
+    return;
+  }
+  if (sym && (code === 404 || code === 400 || /not found|symbol|exist/i.test(msg))) { scannerData[sym] = { invalid:true }; return; }
+  if (sym) scannerData[sym] = { error:true };
+  setBanner('warn', 'Connection issue — retrying automatically…');
+}
+
+function setRateLimited() {
+  rateLimited = true;
+  setBanner('warn', 'Hit the free data limit — pausing updates briefly so you don’t get cut off. They’ll resume automatically.');
+}
+
+// ─── STATUS BANNER + MARKET INDICATOR ───
+function setBanner(type, msg, actLabel, actFn) {
+  const b = document.getElementById('banner');
+  document.getElementById('bannerMsg').textContent = msg;
+  b.className = 'banner show ' + type;
+  const a = document.getElementById('bannerAct');
+  bannerActFn = actFn || null;
+  if (actLabel) { a.textContent = actLabel; a.style.display = ''; } else { a.style.display = 'none'; }
+}
+function clearBanner() { document.getElementById('banner').className = 'banner'; }
+function bannerAction() { if (bannerActFn) bannerActFn(); }
+function markStatus(text, closed) {
+  const m = document.getElementById('marketStatus'); if (m) m.textContent = text;
+  const dot = document.getElementById('statusDot'); if (dot) dot.className = 'status-dot' + (closed ? ' closed' : '');
+}
+function updateMarketStatus() {
+  if (marketOpen === false) markStatus('Market closed', true);
+  else if (marketOpen === true) { markStatus('Live'); if (!rateLimited) clearBanner(); }
+}
+
+// ─── API KEY ONBOARDING ───
+function showKeyModal() {
+  const inp = document.getElementById('apiKeyInput');
+  inp.value = (apiKey && apiKey !== 'demo') ? apiKey : '';
+  const fb = document.getElementById('setupFeedback'); fb.textContent = ''; fb.className = 'setup-feedback';
+  document.getElementById('setupCancelBtn').style.display = '';
+  document.getElementById('setupCancelBtn').textContent = apiKey ? 'Cancel' : 'Maybe later';
+  document.getElementById('setupSaveBtn').disabled = false;
+  document.getElementById('setupModal').classList.add('open');
+  setTimeout(() => inp.focus(), 50);
+}
+function hideKeyModal() { document.getElementById('setupModal').classList.remove('open'); }
+async function testAndSaveKey() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  const fb = document.getElementById('setupFeedback');
+  const btn = document.getElementById('setupSaveBtn');
+  if (!v) { fb.className = 'setup-feedback err'; fb.textContent = 'Please paste your API key first.'; return; }
+  fb.className = 'setup-feedback busy'; fb.textContent = 'Testing your key…'; btn.disabled = true;
+  try {
+    const res = await fetch(`${TD_BASE}/quote?symbol=AAPL&apikey=${encodeURIComponent(v)}`);
+    const j = await res.json();
+    if (j && j.status === 'error') {
+      fb.className = 'setup-feedback err';
+      fb.textContent = (j.code === 401) ? 'That key was rejected — double-check you copied all of it.' : ('Couldn’t use that key: ' + (j.message || 'unknown error'));
+      btn.disabled = false; return;
+    }
+    apiKey = v;
+    try { localStorage.setItem('orb_td_key', v); } catch(e) {}
+    fb.className = 'setup-feedback ok'; fb.textContent = 'Connected! Loading live data…';
+    document.getElementById('keyBtnLabel').textContent = 'Data connected';
+    orCache = {}; prevStatus = {};
+    setTimeout(() => { hideKeyModal(); startLive(); }, 600);
+  } catch (e) {
+    fb.className = 'setup-feedback err'; fb.textContent = 'Network error while testing — check your connection and try again.';
+    btn.disabled = false;
+  }
+}
+
+// ─── LIVE LOOP (adaptive cadence: faster when open, slow when closed, backs off on limit) ───
+function startLive() {
+  if (!apiKey) { showKeyModal(); return; }
+  liveActive = true;
+  if (liveTimer) clearTimeout(liveTimer);
+  markStatus('Connecting…');
+  clearBanner();
+  liveTick();
+}
+function stopLive() { liveActive = false; if (liveTimer) clearTimeout(liveTimer); }
+async function liveTick() {
+  if (!liveActive) return;
+  await refreshAll();
+  let delay = OPEN_REFRESH_MS;
+  if (rateLimited) { delay = 90000; rateLimited = false; }
+  else if (marketOpen === false) delay = CLOSED_REFRESH_MS;
+  liveTimer = setTimeout(liveTick, delay);
+}
+
+// Add a ticker with live data (used by both add buttons).
+function addSymbolLive(sym) {
+  renderChips(); renderScannerChips(); renderScannerTable();
+  if (apiKey) refreshSymbol(sym).then(() => { renderScannerTable(); updateChartSidebar(); });
+}
+
+function refreshScanner() {
+  if (!apiKey) { showKeyModal(); return; }
+  orCache = {};            // force a fresh OR pull on manual refresh
+  refreshAll();
+}
+
+function changeOrLength(v) {
+  orLength = +v || 5;
+  try { localStorage.setItem('orb_or_len', orLength); } catch(e) {}
+  orCache = {}; prevStatus = {};   // OR window changed → recompute
+  if (apiKey) refreshAll();
+}
+
+function renderScannerTable() {
+  const tbody = document.getElementById('scannerBody');
+  if (!apiKey) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:44px;color:var(--text-3);font-size:.82rem;">Connect your free data key to load live prices — click <strong>Connect data</strong> at the top right.</td></tr>'; return; }
+  if (!tickers.length) { tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--text-4);">No tickers added yet.</td></tr>'; return; }
+  tbody.innerHTML = tickers.map(sym => {
+    const tickerCell = `<td><span class="ticker-cell" onclick="setActive('${sym}');switchTab('chart',document.querySelector('.nav-tab'))">${sym}</span></td>`;
+    const viewCell = `<td><button class="action-btn" onclick="setActive('${sym}');switchTab('chart',document.querySelector('.nav-tab'))">View</button></td>`;
+    const d = scannerData[sym];
+    if (!d)          return `<tr>${tickerCell}<td colspan="8" class="loading-cell">loading live data…</td>${viewCell}</tr>`;
+    if (d.invalid)   return `<tr>${tickerCell}<td colspan="8" class="row-msg err">Invalid symbol — not found on the exchange</td>${viewCell}</tr>`;
+    if (d.error)     return `<tr>${tickerCell}<td colspan="8" class="row-msg err">Data unavailable — retrying…</td>${viewCell}</tr>`;
+    const chgClass = (d.change||0) >= 0 ? 'change-pos' : 'change-neg';
+    const chgSign  = (d.change||0) >= 0 ? '+' : '';
+    const stale    = d.marketOpen === false ? '<span class="stale-badge">last close</span>' : '';
+    const priceCell = `<td class="price-cell">$${(d.price||0).toFixed(2)}${stale}</td>`;
+    const chgCell   = `<td class="${chgClass}">${chgSign}${(d.change||0).toFixed(2)} (${chgSign}${(d.chgPct||0).toFixed(2)}%)</td>`;
+    if (d.pending)   return `<tr>${tickerCell}${priceCell}${chgCell}<td colspan="6" class="row-msg">Awaiting opening range…</td>${viewCell}</tr>`;
+    const biasHtml = d.bias === 'bull'
+      ? `<span class="bias-pill bull">▲ Bullish</span>`
+      : `<span class="bias-pill bear">▼ Bearish</span>`;
+    const statusHtml = d.status === 'breakout'
+      ? `<span class="trade-status open" style="background:#E8F5E9;color:var(--green);">⚡ Breakout</span>`
+      : d.status === 'failed'
+      ? `<span class="trade-status" style="background:var(--yellow-bg);color:var(--yellow);">⚠ Failed</span>`
+      : `<span class="trade-status open">● Inside</span>`;
+    const fibMid = d.bias === 'bull'
+      ? +(d.orbHigh - d.range * 0.5).toFixed(2)
+      : +(d.orbLow  + d.range * 0.5).toFixed(2);
+    return `<tr>
+      ${tickerCell}
+      ${priceCell}
+      ${chgCell}
+      <td>${biasHtml}</td>
+      <td class="orb-range">$${d.orbLow} – $${d.orbHigh}</td>
+      <td class="mono">$${(d.bias==='bull'?d.orbHigh:d.orbLow).toFixed(2)}</td>
+      <td class="mono">$${fibMid.toFixed(2)}</td>
+      <td class="mono">$${(d.bias==='bull'?d.orbLow:d.orbHigh).toFixed(2)}</td>
+      <td>${statusHtml}</td>
+      ${viewCell}
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// CHART SIDEBAR
+// ═══════════════════════════════════════════
+function updateChartSidebar() {
+  const d = scannerData[activeSymbol];
+  if (!d) return;
+  if (d.invalid || d.error || d.pending || !d.range) {
+    document.getElementById('biasDisplay').innerHTML = '<span class="bias-pill none">' + (d.invalid ? 'Invalid' : d.error ? 'No data' : 'Awaiting OR') + '</span>';
+    document.getElementById('biasSubtext').textContent = d.pending ? 'Opening range not set yet' : d.invalid ? 'Symbol not found' : 'Waiting for data';
+    document.getElementById('biasTile').className = 'stat-tile';
+    document.getElementById('orbRangeDisplay').textContent = '—';
+    document.getElementById('orbRangeSubtext').textContent = (d.price ? '$' + d.price.toFixed(2) + ' last' : 'High – Low');
+    return;
+  }
+  const biasTile = document.getElementById('biasTile');
+  const biasDisplay = document.getElementById('biasDisplay');
+  const biasSubtext  = document.getElementById('biasSubtext');
+  if (d.bias === 'bull' && d.status !== 'failed') {
+    biasDisplay.innerHTML = '<span class="bias-pill bull">▲ Bullish</span>';
+    biasSubtext.textContent = 'Close above OR midpoint';
+    biasTile.className = 'stat-tile bullish';
+  } else if (d.bias === 'bear' && d.status !== 'failed') {
+    biasDisplay.innerHTML = '<span class="bias-pill bear">▼ Bearish</span>';
+    biasSubtext.textContent = 'Close below OR midpoint';
+    biasTile.className = 'stat-tile bearish';
+  } else {
+    biasDisplay.innerHTML = '<span class="bias-pill fail">⚠ Failed</span>';
+    biasSubtext.textContent = 'Bias invalidated';
+    biasTile.className = 'stat-tile';
+  }
+  document.getElementById('orbRangeDisplay').textContent = `$${d.range.toFixed(2)}`;
+  document.getElementById('orbRangeSubtext').textContent = `$${d.orbLow} – $${d.orbHigh}`;
+  // Session P&L
+  const sessionTrades = trades.filter(t => t.ticker === activeSymbol && t.status !== 'open');
+  const sessionPnl = sessionTrades.reduce((s,t) => s + (t.pnl || 0), 0);
+  const spEl = document.getElementById('sessionPnlDisplay');
+  spEl.textContent = (sessionPnl >= 0 ? '+' : '') + '$' + sessionPnl.toFixed(2);
+  spEl.style.color = sessionPnl > 0 ? 'var(--green)' : sessionPnl < 0 ? 'var(--red)' : 'var(--text-1)';
+}
+
+// ═══════════════════════════════════════════
+// MANUAL SIGNAL
+// ═══════════════════════════════════════════
+function manualSignal(dir) {
+  const d = scannerData[activeSymbol];
+  const price = d ? d.price : 400;
+  const orbH  = d ? d.orbHigh : price * 1.005;
+  const orbL  = d ? d.orbLow  : price * 0.995;
+  const type  = dir === 'long' ? 'up' : 'down';
+  pushAlert(activeSymbol, type,
+    dir === 'long' ? 'Manual Long signal fired at ORB High' : 'Manual Short signal fired at ORB Low',
+    price);
+  autoLogTrade(activeSymbol, dir, price, orbH, orbL);
+  renderPnlTable();
+  updateKPIs();
+  updateChartSidebar();
+}
+
+// ═══════════════════════════════════════════
+// ALERTS
+// ═══════════════════════════════════════════
+function pushAlert(ticker, type, desc, price) {
+  const now = new Date().toLocaleTimeString('en-US', { timeZone:'America/New_York', hour12:true });
+  alerts.unshift({ id: Date.now() + Math.random(), time: now, ticker, type, desc, price });
+  document.getElementById('alertBadge').textContent = alerts.length;
+  renderAlerts();
+}
+
+function filterAlerts(f, el) {
+  alertFilter = f;
+  document.querySelectorAll('.alerts-filter').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderAlerts();
+}
+
+function dismissAlert(id) {
+  alerts = alerts.filter(a => a.id !== id);
+  document.getElementById('alertBadge').textContent = alerts.length;
+  renderAlerts();
+}
+
+function clearAlerts() {
+  alerts = [];
+  document.getElementById('alertBadge').textContent = 0;
+  renderAlerts();
+}
+
+function renderAlerts() {
+  const list = document.getElementById('alertsList');
+  const filtered = alertFilter === 'all' ? alerts : alerts.filter(a => a.type === alertFilter);
+  if (!filtered.length) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🔔</div><div class="empty-state-text">No alerts${alertFilter!=='all'?' in this category':''}.</div></div>`;
+    return;
+  }
+  const typeMap = { up: '↑ Breakout', down: '↓ Breakdown', fail: '⚠ Bias Fail' };
+  list.innerHTML = filtered.map(a => `
+    <div class="alert-item" id="al-${a.id}">
+      <div class="alert-time">${a.time}</div>
+      <div class="alert-ticker">${a.ticker}</div>
+      <div class="alert-type ${a.type}">${typeMap[a.type]||a.type}</div>
+      <div class="alert-desc">${a.desc}</div>
+      <div class="alert-price ${a.type==='up'?'pnl-pos':a.type==='down'?'pnl-neg':''}">$${Number(a.price).toFixed(2)}</div>
+      <button class="dismiss-btn" onclick="dismissAlert(${a.id})">Dismiss</button>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════
+// P&L TRACKER
+// ═══════════════════════════════════════════
+function autoLogTrade(ticker, dir, entryPrice, orbHigh, orbLow) {
+  const orbRange = orbHigh - orbLow;
+  const fibMid  = dir === 'long' ? +(orbHigh - orbRange * 0.5).toFixed(2) : +(orbLow + orbRange * 0.5).toFixed(2);
+  const fib100  = dir === 'long' ? +orbLow.toFixed(2) : +orbHigh.toFixed(2);
+  trades.push({
+    id: Date.now() + Math.random(),
+    ticker,
+    dir,
+    entryTime: new Date().toLocaleTimeString('en-US',{timeZone:'America/New_York',hour12:true}),
+    entryPrice: +entryPrice.toFixed(2),
+    fibMid,
+    fib100,
+    exitPrice: null,
+    pnl: null,
+    status: 'open'
+  });
+  renderPnlTable();
+  updateKPIs();
+}
+
+function renderPnlTable() {
+  const tbody = document.getElementById('pnlBody');
+  if (!trades.length) {
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:50px;color:var(--text-4);font-size:.82rem;">No trades logged.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = trades.slice().reverse().map(t => {
+    const pnlHtml = t.pnl !== null
+      ? `<span class="${t.pnl>=0?'pnl-pos':'pnl-neg'}">${t.pnl>=0?'+':''}$${t.pnl.toFixed(2)}</span>`
+      : `<span class="text-3">—</span>`;
+    const exitHtml = t.exitPrice !== null ? `$${t.exitPrice.toFixed(2)}` : '—';
+    const statusHtml = t.status === 'open'
+      ? `<span class="trade-status open">● Open</span>`
+      : t.pnl >= 0
+      ? `<span class="trade-status win">✓ Win</span>`
+      : `<span class="trade-status loss">✗ Loss</span>`;
+    const actionHtml = t.status === 'open'
+      ? `<button class="close-trade-btn" onclick="openCloseModal('${t.id}')">Close</button>`
+      : `<span style="color:var(--text-4);font-size:.72rem;">Closed</span>`;
+    return `<tr>
+      <td class="trade-ticker">${t.ticker}</td>
+      <td><span class="trade-dir ${t.dir}">${t.dir==='long'?'▲ Long':'▼ Short'}</span></td>
+      <td class="mono text-3">${t.entryTime}</td>
+      <td class="mono">$${t.entryPrice.toFixed(2)}</td>
+      <td class="mono">$${t.fibMid.toFixed(2)}</td>
+      <td class="mono">$${t.fib100.toFixed(2)}</td>
+      <td class="mono">${exitHtml}</td>
+      <td>${pnlHtml}</td>
+      <td>${statusHtml}</td>
+      <td>${actionHtml}</td>
+    </tr>`;
+  }).join('');
+}
+
+function updateKPIs() {
+  const closed = trades.filter(t => t.status !== 'open');
+  const open   = trades.filter(t => t.status === 'open');
+  const wins   = closed.filter(t => t.pnl >= 0);
+  const totalPnl = closed.reduce((s,t)=>s+(t.pnl||0),0);
+  const avgWin   = wins.length ? wins.reduce((s,t)=>s+t.pnl,0)/wins.length : null;
+  const kpiTotal = document.getElementById('kpiTotal');
+  kpiTotal.textContent = (totalPnl>=0?'+':'') + '$' + totalPnl.toFixed(2);
+  kpiTotal.className = 'pnl-kpi-value' + (totalPnl>0?' pos':totalPnl<0?' neg':'');
+  document.getElementById('kpiWinRate').textContent = closed.length ? Math.round(wins.length/closed.length*100)+'%' : '—';
+  document.getElementById('kpiOpen').textContent = open.length;
+  document.getElementById('kpiAvgWin').textContent = avgWin !== null ? '+$'+avgWin.toFixed(2) : '—';
+}
+
+// ─── CLOSE MODAL ───
+function openCloseModal(id) {
+  closingTradeId = id;
+  const t = trades.find(t => String(t.id) === String(id));
+  document.getElementById('modalSymbol').textContent = t ? t.ticker + ' (' + (t.dir==='long'?'Long':'Short') + ')' : '—';
+  document.getElementById('modalExitPrice').value = '';
+  document.getElementById('closeModal').classList.add('open');
+}
+function closeModal() {
+  closingTradeId = null;
+  document.getElementById('closeModal').classList.remove('open');
+}
+function confirmClose() {
+  const exitPrice = parseFloat(document.getElementById('modalExitPrice').value);
+  if (isNaN(exitPrice) || exitPrice <= 0) { document.getElementById('modalExitPrice').style.borderColor='var(--red)'; return; }
+  const t = trades.find(t => String(t.id) === String(closingTradeId));
+  if (!t) return;
+  t.exitPrice = exitPrice;
+  t.pnl = t.dir === 'long' ? +(exitPrice - t.entryPrice).toFixed(2) : +(t.entryPrice - exitPrice).toFixed(2);
+  t.status = t.pnl >= 0 ? 'win' : 'loss';
+  closeModal();
+  renderPnlTable();
+  updateKPIs();
+  updateChartSidebar();
+}
+document.getElementById('closeModal').addEventListener('click', function(e) { if(e.target===this) closeModal(); });
+document.getElementById('setupModal').addEventListener('click', function(e) { if(e.target===this) hideKeyModal(); });
+document.getElementById('helpModal').addEventListener('click', function(e) { if(e.target===this) hideHelp(); });
+function showHelp() { document.getElementById('helpModal').classList.add('open'); }
+function hideHelp() { document.getElementById('helpModal').classList.remove('open'); }
+document.addEventListener('keydown', function(e) { if(e.key==='Escape'){ hideKeyModal(); closeModal(); hideHelp(); } });
+
+// ─── ENTER KEY SUPPORT ───
+document.getElementById('chartTickerInput').addEventListener('keydown', e => { if(e.key==='Enter') addTicker(); });
+document.getElementById('scannerTickerInput').addEventListener('keydown', e => { if(e.key==='Enter') addScannerTicker(); });
+document.getElementById('modalExitPrice').addEventListener('keydown', e => { if(e.key==='Enter') confirmClose(); });
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+(function init() {
+  const ols = document.getElementById('orLenSelect'); if (ols) ols.value = String(orLength);
+  renderChips();
+  renderScannerChips();
+  renderScannerTable();
+  renderAlerts();
+  renderPnlTable();
+  updateKPIs();
+  initChart();
+  updateChartSidebar();
+  // Live data requires a free API key. Stream real quotes once connected.
+  if (apiKey) {
+    document.getElementById('keyBtnLabel').textContent = 'Data connected';
+    startLive();
+  } else {
+    markStatus('Not connected', true);
+    document.getElementById('keyBtnLabel').textContent = 'Connect data';
+    setBanner('info', 'Connect your free market-data key to start streaming live prices.', 'Connect', showKeyModal);
+    showKeyModal();
+  }
+})();
+</script>
+</body>
+</html>
